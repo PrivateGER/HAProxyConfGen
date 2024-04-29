@@ -1,0 +1,11 @@
+backend {{ this.name }}_backend
+    mode http
+    option forwardfor
+
+{{#if ../proxy_config.http_redirect}}
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    http-request set-header X-Forwarded-Port %[dst_port]
+{{/if}}
+
+    server {{ this.name }} {{ this.host }}:{{ this.port }} {{#if this.health_check}}check{{/if}} init-addr last,libc,none
+

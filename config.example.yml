@@ -1,0 +1,18 @@
+proxy_config:
+    listen_port: 443
+    tls: true
+    tls_cert: /path/to/cert.pem
+    quic: true
+    http_redirect: true
+    username: haproxy
+    group: haproxy
+#    stats: true
+#    stats_password: password # leave empty to enable passwordless stats
+
+servers:
+    - name: service1
+      protocol: http
+      host: 127.0.0.1
+      port: 443
+      health_check: true
+      domain: service1.example.com

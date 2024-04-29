@@ -1,0 +1,37 @@
+frontend httprouter
+    mode http
+
+{{#if ../proxy_config.tls}}
+    {{#if ../proxy_config.http_redirect}}bind :80{{/if}}
+    bind :{{ ../proxy_config.listen_port}} ssl crt {{ ../proxy_config.tls_cert }}
+    {{#if ../proxy_config.quic}}bind quic4@:{{../proxy_config.listen_port}} ssl crt {{../proxy_config.tls_cert}}{{/if}}
+{{else}}
+    {{#if ../proxy_config.http_redirect}}bind :80{{/if}}
+    bind :{{../proxy_config.listen_port}}
+{{/if}}
+
+    {{#if ../proxy_config.http_redirect}}http-request redirect scheme https unless { ssl_fc }{{/if}}
+
+    {{#if ../proxy_config.quic}}http-response set-header Alt-Svc 'h3=":443"; ma=86400';{{/if}}
+    http-request set-header X-Client-IP %[src]
+    http-request set-header X-Real-IP %[src]
+    http-request set-header X-Forwarded-For %[src]
+    http-request set-header X-Forwarded-Proto https
+
+    filter compression
+    compression algo gzip
+    compression type text/css text/html text/javascript application/javascript text/plain text/xml application/json
+    compression offload
+
+    filter cache default_cache
+    http-request cache-use default_cache
+    http-response cache-store default_cache
+
+cache default_cache
+    total-max-size 512
+    max-object-size 10000
+
+{{#each ../servers}}
+    acl ACL_{{ this.name }} hdr(host) -i {{ this.domain }}
+    use_backend {{ this.name }}_backend if ACL_{{ this.name }}
+{{/each}}
